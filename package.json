@@ -5,7 +5,9 @@
   "repository": "https://github.com/viviankc/gtc",
   "homepage": "",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start": "ts-node src/Bot.ts"
+  },
   "devDependencies": {
     "@types/node": "^18.15.11",
     "discord.js": "^14.9.0",

@@ -1,19 +1,20 @@
-import { Client, Intents } from 'discord.js';
-import { config } from 'src/config/config'
+import { Client } from 'discord.js';
+import { config } from './config/config'
+import ready  from "./listeners/ready";
+import interactionCreate from "./listeners/interactionCreate";
 
-const client = new Client({ intents: [Intents.FLAGS.Guilds, Intents.FLAGS.GuildMessages] });
+console.log("Initiating bot ...");
 
-const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';
-const COMMAND = '/gtc';
+// Create client 
+const client = new Client({ intents: [] });
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user?.tag}!`);
-});
+// Ready the client
+ready(client)
 
-client.on('messageCreate', (message) => {
-  if (message.content === COMMAND) {
-    message.channel.send('hello');
-  }
-});
+// Listen to interactions
+interactionCreate(client);
 
-client.login(BOT_TOKEN);
+// Login bot
+client.login(config.DISCORD_BOT_TOKEN);
+
+
