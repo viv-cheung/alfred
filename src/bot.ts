@@ -9,7 +9,7 @@ console.log('Initiating bot ...')
 const client = new Client({ intents: [] })
 
 // Ready the client
-  ready(client)
+ready(client)
 
 // Listen to interactions
 interactionCreate(client)
