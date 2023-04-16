@@ -1,7 +1,8 @@
 # gtc
 
 
-# Setup
+# How to Run
+Here are the instructions on how to run your own GTC Discord bot.
 
 1. Git clone this repository
 2. Run `yarn` to install dependencies
