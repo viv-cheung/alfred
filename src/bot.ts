@@ -1,5 +1,5 @@
 import { Client } from 'discord.js'
-import Config from './config/config'
+import { DISCORD_BOT_TOKEN } from './config/config'
 import ready from './listeners/ready'
 import interactionCreate from './listeners/interactionCreate'
 
@@ -15,4 +15,4 @@ ready(client)
 interactionCreate(client)
 
 // Login bot
-client.login(Config.DISCORD_BOT_TOKEN)
+client.login(DISCORD_BOT_TOKEN)
