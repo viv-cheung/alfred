@@ -6,7 +6,7 @@ import interactionCreate from './listeners/interactionCreate'
 console.log('Initiating bot ...')
 
 // Create client
-const client = new Client({ intents: [] })
+const client = new Client({ intents: ['Guilds', 'GuildMessages'] })
 
 // Ready the client
 ready(client)
