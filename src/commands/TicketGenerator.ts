@@ -40,7 +40,7 @@ async function generateGitHubTicket(conversation: string) {
       temperature: 0.7,
       max_tokens: 1,
     })
-    
+
     return completion.data.choices[0].text
   } catch (error: any) {
     // Consider adjusting the error handling logic for your use case
