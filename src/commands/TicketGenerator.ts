@@ -5,10 +5,10 @@ import { GPT_API_KEY } from '../config/config'
 import generateTicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
 
- /*  ******SETTINGS****** */
-//Number of messages to send to ChatGPT for context
-//The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 25 
+/*  ******SETTINGS****** */
+// Number of messages to send to ChatGPT for context
+// The messages will be from the most recent messages (e.i last 25 messages)
+const N_LAST_MESSAGES_TO_READ = 25
 
 const configuration = new Configuration({
   apiKey: GPT_API_KEY,
@@ -29,7 +29,7 @@ async function generateGitHubTicket(conversation: string) {
   try {
     const completion = await openai.createCompletion({
       prompt: generateTicketCreatorPrompt(conversation),
-      ...openAISettings
+      ...openAISettings,
     })
 
     return completion.data.choices[0].text
