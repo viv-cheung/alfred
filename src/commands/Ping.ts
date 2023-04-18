@@ -1,11 +1,13 @@
-import { CommandInteraction, Client } from 'discord.js'
-import { Command } from '../types/Command'
+import { CommandInteraction } from 'discord.js'
+import { SlashCommandBuilder } from '@discordjs/builders'
 
-// Command to check if bot is alive
+const pingCommandData = new SlashCommandBuilder()
+  .setName('gtc-ping')
+  .setDescription('Returns a pong')
+
 export default {
-  name: 'gtc-ping',
-  description: 'Returns a pong',
-  run: async (client: Client, interaction: CommandInteraction) => {
+  data: pingCommandData,
+  execute: async (interaction: CommandInteraction) => {
     const content = 'pong'
 
     await interaction.followUp({
@@ -13,4 +15,4 @@ export default {
       content,
     })
   },
-} as Command
+}
