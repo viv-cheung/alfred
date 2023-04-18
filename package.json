@@ -11,11 +11,15 @@
     "lint:fix": "eslint src/ --ext .js,.jsx,.ts,.tsx --fix"
   },
   "dependencies": {
+    "@discordjs/builders": "^1.6.1",
+    "@octokit/auth-app": "^4.0.9",
+    "@octokit/rest": "^19.0.7",
     "discord.js": "^14.9.0",
     "dotenv": "^16.0.3",
     "openai": "^3.2.1"
   },
   "devDependencies": {
+    "@octokit/app": "^13.1.2",
     "@types/node": "^18.15.11",
     "@typescript-eslint/eslint-plugin": "^5.58.0",
     "@typescript-eslint/parser": "^5.58.0",
