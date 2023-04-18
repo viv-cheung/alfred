@@ -46,7 +46,7 @@ async function generateGitHubTicket(conversation: string) {
 }
 
 const generateTicketCommandData = new SlashCommandBuilder()
-  .setName('gtc-generate-ticket')
+  .setName('generate-ticket-summary')
   .setDescription('Generate a GitHub Ticket')
 
 // Command to generate a GitHub Ticket
