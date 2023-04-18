@@ -1,16 +1,17 @@
 import dotenv from 'dotenv'
+import getEnvParameter from '../utils/config'
 
 dotenv.config()
 
-export const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || ''
-export const GPT_API_KEY = process.env.GPT_API_KEY || ''
+export const DISCORD_BOT_TOKEN = getEnvParameter('DISCORD_BOT_TOKEN')
+export const GPT_API_KEY = getEnvParameter('GPT_API_KEY')
 
 // Alfred configs
-const ALFRED_APP_ID = Number(process.env.ALFRED_APP_ID) || 0
-const ALFRED_GITHUB_INSTALLATION_ID = Number(process.env.ALFRED_GITHUB_INSTALLATION_ID) || 0
-const ALFRED_CLIENT_ID = process.env.ALFRED_CLIENT_ID || ''
-const ALFRED_CLIENT_SECRET = process.env.ALFRED_CLIENT_SECRET || ''
-const ALFRED_GITHUB_PK = process.env.ALFRED_GITHUB_PK || ''
+const ALFRED_APP_ID = Number(getEnvParameter('ALFRED_APP_ID'))
+const ALFRED_GITHUB_INSTALLATION_ID = Number(getEnvParameter('ALFRED_GITHUB_INSTALLATION_ID'))
+const ALFRED_CLIENT_ID = getEnvParameter('ALFRED_CLIENT_ID')
+const ALFRED_CLIENT_SECRET = getEnvParameter('ALFRED_CLIENT_SECRET')
+const ALFRED_GITHUB_PK = getEnvParameter('ALFRED_GITHUB_PK')
 
 export const AlfredConfig = {
   appId: ALFRED_APP_ID,
