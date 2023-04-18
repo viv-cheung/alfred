@@ -1,8 +1,8 @@
-# gtc
+# Alfred (your friendly discord butler)
 
 
 # How to Run
-Here are the instructions on how to run your own GTC Discord bot.
+Here are the instructions on how to run your own Alfred Discord bot.
 
 1. Git clone this repository
 2. Run `yarn` or `npm install` to install dependencies
