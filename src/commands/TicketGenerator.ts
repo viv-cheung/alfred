@@ -1,6 +1,7 @@
-import { CommandInteraction, Client, Message } from 'discord.js'
+import {
+  CommandInteraction, Client, Message, SlashCommandBuilder,
+} from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
-import { Command } from '../types/Command'
 import { GPT_API_KEY } from '../config/config'
 import generateTicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
@@ -44,11 +45,14 @@ async function generateGitHubTicket(conversation: string) {
   }
 }
 
+const generateTicketCommandData = new SlashCommandBuilder()
+  .setName('gtc-generate-ticket')
+  .setDescription('Generate a GitHub Ticket')
+
 // Command to generate a GitHub Ticket
 export default {
-  name: 'gtc-generate-ticket',
-  description: 'Generate a GitHub Ticket',
-  run: async (client: Client, interaction: CommandInteraction) => {
+  data: generateTicketCommandData,
+  execute: async (interaction: CommandInteraction, client: Client) => {
     // Find the channel where the conversation took place
     const channel = await client.channels.cache.get('1096935842976641067')
 
@@ -69,4 +73,4 @@ export default {
       })
     }
   },
-} as Command
+}

@@ -1,6 +1,6 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js'
+import { SlashCommandBuilder, CommandInteraction, Client } from 'discord.js'
 
 export interface Command {
   data: SlashCommandBuilder;
-  execute: (interaction: CommandInteraction) => Promise<void>;
+  execute: (interaction: CommandInteraction, client?: Client) => Promise<void> ;
 }

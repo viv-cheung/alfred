@@ -16,18 +16,17 @@ const createIssueCommandData = new SlashCommandBuilder()
     .setRequired(true))
   .addStringOption((option) => option
     .setName('body')
-    .setDescription('The body of the issue')
-    .setRequired(true))
+    .setDescription('The body of the issue'))
 
 // Command to let the bot create a ticket
 export default {
   data: createIssueCommandData,
   execute: async (interaction: ChatInputCommandInteraction): Promise<void> => {
-    const title = interaction.options.getString('title') || 'test title'
-    const body = interaction.options.getString('body') || 'test body'
+    const title = interaction.options.getString('title') // Is required
+    const body = interaction.options.getString('body') || '' // Can be empty
 
     const octokit = await getOctokit(AlfredConfig)
-    const url = await createIssue(octokit, OWNER, REPO, title, body)
+    const url = await createIssue(octokit, OWNER, REPO, title!, body)
 
     interaction.followUp({
       content:
