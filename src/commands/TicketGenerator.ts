@@ -30,8 +30,8 @@ async function generateGitHubTicket(conversation: string) {
   try {
     const completion = await openai.createChatCompletion({
       messages: [
-        {role: "system", content: `${ticketCreatorPrompt}`},
-        {role: "user", content: `${conversation}`}
+        { role: 'system', content: `${ticketCreatorPrompt}` },
+        { role: 'user', content: `${conversation}` },
       ],
       ...openAISettings,
     } as any)
