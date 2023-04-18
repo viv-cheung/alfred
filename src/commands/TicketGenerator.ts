@@ -3,7 +3,7 @@ import {
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY } from '../config/config'
-import generateTicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
+import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
 
 /*  ******SETTINGS****** */
@@ -28,12 +28,15 @@ async function generateGitHubTicket(conversation: string) {
   }
 
   try {
-    const completion = await openai.createCompletion({
-      prompt: generateTicketCreatorPrompt(conversation),
+    const completion = await openai.createChatCompletion({
+      messages: [
+        {role: "system", content: `${ticketCreatorPrompt}`},
+        {role: "user", content: `${conversation}`}
+      ],
       ...openAISettings,
-    })
+    } as any)
 
-    return completion.data.choices[0].text
+    return completion.data.choices[0].message?.content.toString()
   } catch (error: any) {
     if (error.response) {
       console.error(error.response.status, error.response.data)
