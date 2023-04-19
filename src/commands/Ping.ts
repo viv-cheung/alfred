@@ -1,4 +1,4 @@
-import { CommandInteraction } from 'discord.js'
+import { Client, CommandInteraction } from 'discord.js'
 import { SlashCommandBuilder } from '@discordjs/builders'
 
 const pingCommandData = new SlashCommandBuilder()
@@ -7,7 +7,7 @@ const pingCommandData = new SlashCommandBuilder()
 
 export default {
   data: pingCommandData,
-  execute: async (interaction: CommandInteraction) => {
+  execute: async (client: Client, interaction: CommandInteraction) => {
     const content = 'pong'
 
     await interaction.followUp({
