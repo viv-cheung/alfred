@@ -17,12 +17,6 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration)
 
 async function generateGitHubTicket(conversation: string) {
-  if (!configuration.apiKey) {
-    throw new Error(
-      'OpenAI API key not configured, please follow instructions in README.md',
-    )
-  }
-
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
   }
