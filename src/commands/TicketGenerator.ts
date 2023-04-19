@@ -49,9 +49,9 @@ const generateTicketCommandData = new SlashCommandBuilder()
 // Command to generate a GitHub Ticket
 export default {
   data: generateTicketCommandData,
-  execute: async (interaction: CommandInteraction, client: Client) => {
+  execute: async (client: Client, interaction: CommandInteraction) => {
     // Find the channel where the conversation took place
-    const channel = await client.channels.cache.get('1096935842976641067')
+    const channel = await client.channels.cache.get(interaction.channelId)
 
     if (channel && channel.isTextBased()) {
       // Fetch the messages in the channel and concatenate them into a single string
