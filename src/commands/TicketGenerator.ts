@@ -57,8 +57,8 @@ export default {
       // Fetch the messages in the channel and concatenate them into a single string
       const messages = await channel.messages.fetch({ limit: N_LAST_MESSAGES_TO_READ })
       let conversation = ''
-      messages.forEach((message: Message<true> | Message<false>) => {
-        conversation += `${message.content} \n `
+      messages.reverse().forEach((message: Message<true> | Message<false>) => {
+        conversation += `${message.author.username} : ${message.content} \n `
       })
       // Pass the messages from Discord to ChatGPT to create a response
       // based on the generateGitHubTicket prompt
