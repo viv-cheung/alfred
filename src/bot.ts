@@ -6,10 +6,11 @@ import interactionCreate from './listeners/interactionCreate'
 console.log('Initiating bot ...')
 
 // Create client
-const client = new Client({ intents: [ GatewayIntentBits.DirectMessages,
+const client = new Client({
+  intents: [GatewayIntentBits.DirectMessages,
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent] 
+    GatewayIntentBits.MessageContent],
 })
 
 // Ready the client
