@@ -3,28 +3,18 @@ import Commands from '../Commands'
 
 // Text command validation
 const handleTextCommand = async (client: Client, message: Message): Promise<void> => {
-  console.log({message})
-  if (!message.content.startsWith('!$!$!$')) return
+  const commandPrefix = '!$!$!$'
+  if (!message.content.startsWith(commandPrefix)) return
 
-  console.log('1')
-
-  const commandName = message.content.slice(1).trim().split(/ +/).shift()
+  const commandName = message.content.slice(commandPrefix.length).trim().split(/ +/).shift()
     ?.toLowerCase()
+
   const textCommand = Commands.find((c) => c.data.name === commandName)
-
-  console.log('2')
-
 
   if (!textCommand) {
     message.reply('An error has occurred')
     return
   }
-
-  console.log('3')
-
-
-  console.log(message)
-  console.log(Commands.map(c => c.data.name))
 
   textCommand.execute(client, message)
 }

@@ -1,4 +1,4 @@
-import { Client } from 'discord.js'
+import { Client, GatewayIntentBits, IntentsBitField } from 'discord.js'
 import { DISCORD_BOT_TOKEN } from './config/config'
 import ready from './listeners/ready'
 import interactionCreate from './listeners/interactionCreate'
@@ -6,7 +6,10 @@ import messageCreate from './listeners/messageCreate'
 
 export const bootAlfred = async (isTest: boolean): Promise<Client> => {
   // Create client
-  const client = new Client({ intents: ['Guilds', 'GuildMessages'] })
+  const client = new Client({ intents: [ GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent] })
 
   // Ready the client
   await ready(client)
