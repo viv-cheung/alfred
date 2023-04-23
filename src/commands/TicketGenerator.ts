@@ -2,14 +2,18 @@ import {
   CommandInteraction, Client, Message, SlashCommandBuilder,
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
-import { GPT_API_KEY } from '../config/config'
+import { GPT_API_KEY, AlfredConfig } from '../config/config'
 import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
+import { getOctokit, createIssue } from '../utils/github'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
 // The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 25
+const N_LAST_MESSAGES_TO_READ = 11
+// TEMPORARY SETTINGS
+const OWNER = 'viviankc'
+const REPO = 'gtc'
 
 const configuration = new Configuration({
   apiKey: GPT_API_KEY,
@@ -57,16 +61,33 @@ export default {
       // Fetch the messages in the channel and concatenate them into a single string
       const messages = await channel.messages.fetch({ limit: N_LAST_MESSAGES_TO_READ })
       let conversation = ''
-      messages.forEach((message: Message<true> | Message<false>) => {
-        conversation += `${message.content} \n `
+      messages.reverse().forEach((message: Message<true> | Message<false>) => {
+        conversation += `${message.author.username} : ${message.content} \n `
       })
+
       // Pass the messages from Discord to ChatGPT to create a response
       // based on the generateGitHubTicket prompt
       const alfredResponse = await generateGitHubTicket(conversation)
+      let alfredResponseObject
+      if (alfredResponse) {
+        alfredResponseObject = JSON.parse(alfredResponse)
+      } else {
+        throw new Error("Alfred's response is not in a JSON format")
+      }
+
+      // Create github ticket using alfred's response
+      const octokit = await getOctokit(AlfredConfig)
+      const url = await createIssue(
+        octokit,
+        OWNER,
+        REPO,
+        alfredResponseObject?.title!,
+        alfredResponseObject?.body!,
+      )
 
       await interaction.followUp({
         ephemeral: true,
-        content: alfredResponse,
+        content: `${alfredResponseObject?.summary} ${alfredResponseObject?.response_to_user} Github ticket logged here: ${url}`,
       })
     }
   },
