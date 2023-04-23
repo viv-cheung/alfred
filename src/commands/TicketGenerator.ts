@@ -3,9 +3,11 @@ import {
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY, AlfredConfig } from '../config/config'
-import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
+import TicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
-import { getOctokit, createIssue } from '../utils/github'
+import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
+import LabelsPrompt from '../prompts/LabelsPrompt'
+import PreConversationPrompt from '../prompts/PreConversationPrompt'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
@@ -19,6 +21,7 @@ const configuration = new Configuration({
   apiKey: GPT_API_KEY,
 })
 const openai = new OpenAIApi(configuration)
+const octokit = getOctokit(AlfredConfig)
 
 async function generateGitHubTicket(conversation: string) {
   if (conversation.trim().length === 0) {
@@ -26,9 +29,13 @@ async function generateGitHubTicket(conversation: string) {
   }
 
   try {
+    const labels = await getRepositoryLabels(await octokit, OWNER, REPO)
     const completion = await openai.createChatCompletion({
       messages: [
-        { role: 'system', content: `${ticketCreatorPrompt}` },
+        { role: 'system', content: `${TicketCreatorPrompt}` },
+        { role: 'system', content: `${LabelsPrompt}` },
+        { role: 'system', content: `${labels}` },
+        { role: 'system', content: `${PreConversationPrompt}` },
         { role: 'user', content: `${conversation}` },
       ],
       ...openAISettings,
@@ -70,13 +77,13 @@ export default {
       }
 
       // Create github ticket using alfred's response
-      const octokit = await getOctokit(AlfredConfig)
       const url = await createIssue(
-        octokit,
+        await octokit,
         OWNER,
         REPO,
-        alfredResponseObject?.title!,
-        alfredResponseObject?.body!,
+        alfredResponseObject.title,
+        alfredResponseObject.body,
+        alfredResponseObject.labels,
       )
 
       await interaction.followUp({
