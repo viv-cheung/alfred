@@ -64,3 +64,23 @@ export async function getRepositoryLabels(
     throw new Error(`Error fetching repo's labels: ${error}`);
   }
 }
+
+// Will get the labels and their descriptions for a given repository
+export async function getRepositoryLabels(
+  octokit: Octokit, // Octokit instance for that specific app installation
+  owner: string, // Owner of the repository
+  repo: string, // Name of the repository
+) {
+  try {
+    const response = await octokit.issues.listLabelsForRepo({
+      owner,
+      repo,
+      per_page: 200,
+    })
+    const labels = response.data
+    return labels
+  } catch (error) {
+    console.error("Error fetching repo's labels:", error)
+    throw new Error(`Error fetching repo's labels: ${error}`)
+  }
+}
