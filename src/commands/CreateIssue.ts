@@ -15,8 +15,9 @@ const createIssueCommandData = new SlashCommandBuilder()
     .setDescription('The title of the issue')
     .setRequired(true))
   .addStringOption((option) => option
-    .setName('body')
-    .setDescription('The body of the issue'))
+    .setName('content')
+    .setDescription('The body of the issue')
+    .setRequired(true))
 
 // Command to let the bot create a ticket
 export default {
