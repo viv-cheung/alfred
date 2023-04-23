@@ -33,16 +33,11 @@ async function generateGitHubTicket(conversation: string) {
       ],
       ...openAISettings,
     } as any)
-
     return completion.data.choices[0].message?.content.toString()
-  } catch (error: any) {
-    if (error.response) {
-      console.error(error.response.status, error.response.data)
-    } else {
-      console.error(`Error with OpenAI API request: ${error.message}`)
-    }
 
-    return 'error occured'
+  } catch (error) {
+    console.error(`Error reaching openAI: ${error}`)
+    throw new Error(`Error reaching openAI: ${error}`)
   }
 }
 

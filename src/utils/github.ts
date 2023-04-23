@@ -39,8 +39,6 @@ export async function createIssue(
     return resp.data.html_url
   } catch (error) {
     console.error('Error creating issue:', error)
-    return `Failed to create issue: ${error}`
+    throw new Error(`Failed to create issue: ${error}`)
   }
-
-  // Labels ??
 }
