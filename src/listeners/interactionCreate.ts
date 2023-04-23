@@ -9,7 +9,7 @@ const handleSlashCommand = async (
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.data.name === interaction.commandName)
   if (!slashCommand) {
-    interaction.followUp({ content: 'Hm, I do not understand this command.'})
+    interaction.followUp({ content: 'Hm, I do not understand this command.' })
     return
   }
 
