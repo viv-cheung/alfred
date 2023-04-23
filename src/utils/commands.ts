@@ -1,7 +1,11 @@
 import { Client, CommandInteraction } from 'discord.js'
-import { Command } from 'src/types/Command'
+import { Command } from '../types/Command'
 
-export default async function (command: Command, client: Client, interaction: CommandInteraction) {
+export default async function safeExecute(
+  command: Command,
+  client: Client,
+  interaction: CommandInteraction,
+) {
   try {
     await command.execute(client, interaction)
   } catch (error) {

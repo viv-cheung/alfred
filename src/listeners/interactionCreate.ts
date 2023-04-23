@@ -1,6 +1,6 @@
 import { CommandInteraction, Client, Interaction } from 'discord.js'
 import Commands from '../Commands'
-import executeCommand from '../utils/commands'
+import safeExecute from '../utils/commands'
 
 // Slash command validation
 const handleSlashCommand = async (
@@ -14,7 +14,7 @@ const handleSlashCommand = async (
   }
 
   await interaction.deferReply()
-  executeCommand(slashCommand, client, interaction)
+  safeExecute(slashCommand, client, interaction)
 }
 
 // Check if the message is a bot command
