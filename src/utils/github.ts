@@ -2,6 +2,7 @@ import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
 import { AlfredConfig } from 'src/types/AlfredConfig'
 
+// Will create an octokit isntance based on Alfred's configuration
 export async function getOctokit(config: AlfredConfig): Promise<Octokit> {
   // Deconstruct config
   const { installationId, ...options } = config
@@ -21,6 +22,7 @@ export async function getOctokit(config: AlfredConfig): Promise<Octokit> {
   })
 }
 
+// Will create an issue in specified repository
 export async function createIssue(
   octokit: Octokit, // Octokit instance for that specific app installation
   owner: string, // Owner of the repository
@@ -40,5 +42,25 @@ export async function createIssue(
   } catch (error) {
     console.error('Error creating issue:', error)
     throw new Error(`Failed to create issue: ${error}`)
+  }
+}
+
+// Will get the labels and their descriptions for a given repository
+export async function getRepositoryLabels(
+  octokit: Octokit, // Octokit instance for that specific app installation
+  owner: string, // Owner of the repository
+  repo: string, // Name of the repository
+) {
+  try {
+    const response = await octokit.issues.listLabelsForRepo({
+      owner, 
+      repo, 
+      per_page: 200
+    })    
+    const labels = response.data;
+    return labels;
+  } catch (error) {
+    console.error("Error fetching repo's labels:", error);
+    throw new Error(`Error fetching repo's labels: ${error}`);
   }
 }
