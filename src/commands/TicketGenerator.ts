@@ -87,7 +87,11 @@ export default {
 
       await interaction.followUp({
         ephemeral: true,
-        content: `${alfredResponseObject?.summary} ${alfredResponseObject?.response_to_user} Github ticket logged here: ${url}`,
+        content: `Title: ${alfredResponseObject?.title}
+        Issue: ${alfredResponseObject?.body} 
+        Labels: ${alfredResponseObject?.labels}
+        Feedback: ${alfredResponseObject?.response_to_user} 
+        Github ticket logged here: ${url}`,
       })
     }
   },
