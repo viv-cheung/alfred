@@ -2,11 +2,10 @@ import {
   CommandInteraction, Client, Message, SlashCommandBuilder,
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
-import { GPT_API_KEY } from '../config/config'
+import { GPT_API_KEY, AlfredConfig } from '../config/config'
 import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue } from '../utils/github'
-import { AlfredConfig } from '../config/config'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
@@ -68,7 +67,7 @@ export default {
       // Pass the messages from Discord to ChatGPT to create a response
       // based on the generateGitHubTicket prompt
       const alfredResponse = await generateGitHubTicket(conversation)
-      const alfredResponseObject = alfredResponse ? JSON.parse(alfredResponse) : {'AlfredResponse': 'undefined' }
+      const alfredResponseObject = alfredResponse ? JSON.parse(alfredResponse) : { AlfredResponse: 'undefined' }
 
       // Create github ticket using alfred's response
       const octokit = await getOctokit(AlfredConfig)
