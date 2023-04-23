@@ -5,11 +5,16 @@ import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY } from '../config/config'
 import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
+import { getOctokit, createIssue } from '../utils/github'
+import { AlfredConfig } from '../config/config'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
 // The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 25
+const N_LAST_MESSAGES_TO_READ = 11
+// TEMPORARY SETTINGS
+const OWNER = 'viviankc'
+const REPO = 'gtc'
 
 const configuration = new Configuration({
   apiKey: GPT_API_KEY,
@@ -63,10 +68,15 @@ export default {
       // Pass the messages from Discord to ChatGPT to create a response
       // based on the generateGitHubTicket prompt
       const alfredResponse = await generateGitHubTicket(conversation)
+      const alfredResponseObject = alfredResponse ? JSON.parse(alfredResponse) : {'AlfredResponse': 'undefined' }
+
+      // Create github ticket using alfred's response
+      const octokit = await getOctokit(AlfredConfig)
+      const url = await createIssue(octokit, OWNER, REPO, alfredResponseObject?.title!, alfredResponseObject?.body!)
 
       await interaction.followUp({
         ephemeral: true,
-        content: alfredResponse,
+        content: `${alfredResponseObject?.summary} ${alfredResponseObject?.response_to_user} Github ticket logged here: ${url}`,
       })
     }
   },
