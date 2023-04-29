@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, Client } from 'discord.js'
 import { SlashCommandBuilder } from '@discordjs/builders'
 import { getOctokit, createIssue } from '../utils/github'
-import { AlfredConfig } from '../config/config'
+import { AlfredGithubConfig } from '../config/config'
 
 // TEMPORARY SETTINGS
 const OWNER = 'viviankc'
@@ -26,7 +26,7 @@ export default {
     const title = interaction.options.getString('title') // Is required
     const body = interaction.options.getString('body') || '' // Can be empty
 
-    const octokit = await getOctokit(AlfredConfig)
+    const octokit = await getOctokit(AlfredGithubConfig)
     const url = await createIssue(octokit, OWNER, REPO, title!, body)
 
     interaction.followUp({

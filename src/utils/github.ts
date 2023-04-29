@@ -1,9 +1,9 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
-import { AlfredConfig } from '../types/AlfredConfig'
+import { AlfredGithubConfig } from '../types/AlfredGithubConfig'
 
 // Will create an octokit isntance based on Alfred's configuration
-export async function getOctokit(config: AlfredConfig): Promise<Octokit> {
+export async function getOctokit(config: AlfredGithubConfig): Promise<Octokit> {
   // Deconstruct config
   const { installationId, ...options } = config
 
