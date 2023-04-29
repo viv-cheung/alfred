@@ -10,7 +10,7 @@ import { getOctokit, createIssue } from '../utils/github'
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
 // The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 11
+const N_LAST_MESSAGES_TO_READ = 4
 // TEMPORARY SETTINGS
 const OWNER = 'viviankc'
 const REPO = 'gtc'
@@ -19,8 +19,9 @@ const configuration = new Configuration({
   apiKey: GPT_API_KEY,
 })
 const openai = new OpenAIApi(configuration)
+let count: number = 0;
 
-async function generateGitHubTicket(conversation: string) {
+async function generateAlfredResponse (conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
   }
@@ -46,6 +47,14 @@ async function generateGitHubTicket(conversation: string) {
   }
 }
 
+function isResponseParseableToJSON (alfredResponse:string | undefined) {
+  if (alfredResponse && JSON.parse(alfredResponse) !== undefined) {
+    return JSON.parse(alfredResponse)
+  } else {
+    throw new Error("Alfred's response is not in a JSON format")
+  }
+}
+
 const generateTicketCommandData = new SlashCommandBuilder()
   .setName('generate-ticket-summary')
   .setDescription('Generate a GitHub Ticket')
@@ -66,14 +75,37 @@ export default {
       })
 
       // Pass the messages from Discord to ChatGPT to create a response
-      // based on the generateGitHubTicket prompt
-      const alfredResponse = await generateGitHubTicket(conversation)
-      let alfredResponseObject
-      if (alfredResponse) {
-        alfredResponseObject = JSON.parse(alfredResponse)
-      } else {
-        throw new Error("Alfred's response is not in a JSON format")
+      // based on the generateAlfredResponse prompt
+      const alfredResponse = await generateAlfredResponse(conversation)
+      let alfredResponseObject = isResponseParseableToJSON(alfredResponse)
+
+      // If additional information is required from the user, Alfred
+      // will ask some questions to the user before creating the ticket
+      while (alfredResponseObject.response_to_user !== "I have all the information needed!" && count < 4) {
+        let response = ''
+        count++
+      
+        await channel.send(alfredResponseObject.response_to_user)
+      
+        // define message filter function
+        const filter = (msg: any) => msg.author.id === interaction.user.id; 
+      
+        try {
+          const responseMessage = await channel.awaitMessages({filter, max: 1, time: 40000, errors: ['time'] });
+      
+          response = responseMessage?.first()?.content || '';
+          conversation += `${responseMessage?.first()?.author.username || "User response"}: ${response} `;
+      
+          const alfredResponseWithAdditionalInformation = await generateAlfredResponse(conversation);
+          alfredResponseObject = isResponseParseableToJSON(alfredResponseWithAdditionalInformation)
+          
+        } catch (error) {
+          // handle any errors thrown during message waiting
+          throw new Error(`Tried to receive response from user, but I got this error: ${error}`);
+        }
       }
+
+      count = 0
 
       // Create github ticket using alfred's response
       const octokit = await getOctokit(AlfredConfig)
@@ -87,7 +119,9 @@ export default {
 
       await interaction.followUp({
         ephemeral: true,
-        content: `Title: ${alfredResponseObject?.title}
+        content: `
+        Title:
+        ${alfredResponseObject?.title}
         Issue: ${alfredResponseObject?.body} 
         Labels: ${alfredResponseObject?.labels}
         Feedback: ${alfredResponseObject?.response_to_user} 
