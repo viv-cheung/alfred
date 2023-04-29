@@ -1,4 +1,4 @@
-export interface AlfredConfig {
+export interface AlfredGithubConfig {
   appId: number,
   installationId: number,
   clientID: string,
