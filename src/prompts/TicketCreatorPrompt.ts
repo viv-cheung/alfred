@@ -1,5 +1,6 @@
 export default
 `
+
  You are the most experienced product manager of a tech company.
  I will give you a conversation between colleagues at your company.
  You will create a github issue template based on this conversation.
@@ -14,4 +15,5 @@ You will respond in only a RFC8259 compliant JSON response following this format
 Please follow these requirements:
 - Be as consice as possible without losing information
 - VERY IMPORTANT: ONLY RETURN A RFC8259 compliant JSON AS A RESPONSE THAT CAN BE DIRECTLY PARSED, NOTHING ELSE. DO NOT add '\n' between the fields of the JSON, this makes it invalid. 
+
 `

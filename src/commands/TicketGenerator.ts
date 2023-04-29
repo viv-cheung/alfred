@@ -3,9 +3,11 @@ import {
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY, AlfredConfig } from '../config/config'
-import ticketCreatorPrompt from '../prompts/TicketCreatorPrompt'
+import TicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
-import { getOctokit, createIssue } from '../utils/github'
+import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
+import LabelsPrompt from '../prompts/LabelsPrompt'
+import PreConversationPrompt from '../prompts/PreConversationPrompt'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
@@ -20,6 +22,7 @@ const configuration = new Configuration({
 })
 const openai = new OpenAIApi(configuration)
 let count: number = 0;
+const octokit = getOctokit(AlfredConfig)
 
 async function generateAlfredResponse (conversation: string) {
   if (conversation.trim().length === 0) {
@@ -27,23 +30,21 @@ async function generateAlfredResponse (conversation: string) {
   }
 
   try {
+    const labels = await getRepositoryLabels(await octokit, OWNER, REPO)
     const completion = await openai.createChatCompletion({
       messages: [
-        { role: 'system', content: `${ticketCreatorPrompt}` },
+        { role: 'system', content: `${TicketCreatorPrompt}` },
+        { role: 'system', content: `${LabelsPrompt}` },
+        { role: 'system', content: `${labels}` },
+        { role: 'system', content: `${PreConversationPrompt}` },
         { role: 'user', content: `${conversation}` },
       ],
       ...openAISettings,
     } as any)
-
     return completion.data.choices[0].message?.content.toString()
-  } catch (error: any) {
-    if (error.response) {
-      console.error(error.response.status, error.response.data)
-    } else {
-      console.error(`Error with OpenAI API request: ${error.message}`)
-    }
-
-    return 'error occured'
+  } catch (error) {
+    console.error(`Error reaching openAI: ${error}`)
+    throw new Error(`Error reaching openAI: ${error}`)
   }
 }
 
@@ -108,13 +109,13 @@ export default {
       count = 0
 
       // Create github ticket using alfred's response
-      const octokit = await getOctokit(AlfredConfig)
       const url = await createIssue(
-        octokit,
+        await octokit,
         OWNER,
         REPO,
-        alfredResponseObject?.title!,
-        alfredResponseObject?.body!,
+        alfredResponseObject.title,
+        alfredResponseObject.body,
+        alfredResponseObject.labels,
       )
 
       await interaction.followUp({
