@@ -15,6 +15,7 @@
         "sourceType": "module"
     },
     "rules": {
+        "no-await-in-loop": "off",
         "no-console": "off",
         "semi": ["error", "never"],
         "@typescript-eslint/semi": ["error", "never"]
