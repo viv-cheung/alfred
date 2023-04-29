@@ -48,7 +48,6 @@ async function generateAlfredResponse(conversation: string) {
       return JSON.parse(alfredResponse)
     }
     throw new Error("Alfred's response is not in a JSON format")
-
   } catch (error) {
     console.error(`Error reaching openAI: ${error}`)
     throw new Error(`Error reaching openAI: ${error}`)
