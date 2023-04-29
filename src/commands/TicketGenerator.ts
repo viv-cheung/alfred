@@ -2,7 +2,7 @@ import {
   CommandInteraction, Client, Message, SlashCommandBuilder,
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
-import { GPT_API_KEY, AlfredConfig } from '../config/config'
+import { GPT_API_KEY, AlfredGithubConfig } from '../config/config'
 import TicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
@@ -22,7 +22,7 @@ const configuration = new Configuration({
 })
 const openai = new OpenAIApi(configuration)
 let count: number = 0
-const octokit = getOctokit(AlfredConfig)
+const octokit = getOctokit(AlfredGithubConfig)
 
 async function generateAlfredResponse(conversation: string) {
   if (conversation.trim().length === 0) {
