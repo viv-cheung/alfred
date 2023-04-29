@@ -12,7 +12,9 @@ import PreConversationPrompt from '../prompts/PreConversationPrompt'
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
 // The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 11
+const N_LAST_MESSAGES_TO_READ = 4
+const COUNT_RESPONSE_LIMIT = 4
+
 // TEMPORARY SETTINGS
 const OWNER = 'viviankc'
 const REPO = 'gtc'
@@ -23,7 +25,7 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration)
 const octokit = getOctokit(AlfredGithubConfig)
 
-async function generateGitHubTicket(conversation: string) {
+async function generateAlfredResponse(conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
   }
@@ -40,7 +42,12 @@ async function generateGitHubTicket(conversation: string) {
       ],
       ...openAISettings,
     } as any)
-    return completion.data.choices[0].message?.content.toString()
+    const alfredResponse = completion.data.choices[0].message?.content.toString()
+
+    if (alfredResponse && JSON.parse(alfredResponse) !== undefined) {
+      return JSON.parse(alfredResponse)
+    }
+    throw new Error("Alfred's response is not in a JSON format")
   } catch (error) {
     console.error(`Error reaching openAI: ${error}`)
     throw new Error(`Error reaching openAI: ${error}`)
@@ -55,6 +62,8 @@ const generateTicketCommandData = new SlashCommandBuilder()
 export default {
   data: generateTicketCommandData,
   execute: async (client: Client, interaction: CommandInteraction) => {
+    let responseCount: number = 0
+
     // Find the channel where the conversation took place
     const channel = await client.channels.cache.get(interaction.channelId)
 
@@ -67,13 +76,32 @@ export default {
       })
 
       // Pass the messages from Discord to ChatGPT to create a response
-      // based on the generateGitHubTicket prompt
-      const alfredResponse = await generateGitHubTicket(conversation)
-      let alfredResponseObject
-      if (alfredResponse) {
-        alfredResponseObject = JSON.parse(alfredResponse)
-      } else {
-        throw new Error("Alfred's response is not in a JSON format")
+      // based on the generateAlfredResponse prompt
+      let alfredResponse = await generateAlfredResponse(conversation)
+
+      // If additional information is required from the user, Alfred
+      // will ask some questions to the user before creating the ticket
+      while (alfredResponse.response_to_user !== 'I have all the information needed!' && responseCount < COUNT_RESPONSE_LIMIT) {
+        responseCount += 1
+
+        await channel.send(alfredResponse.response_to_user)
+
+        // define message filter function
+        const filter = (msg: any) => msg.author.id === interaction.user.id
+
+        try {
+          const responseMessage = await channel.awaitMessages({
+            filter, max: 1, time: 40000, errors: ['time'],
+          })
+
+          const userResponse = responseMessage?.first()?.content || ''
+          conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
+
+          alfredResponse = await generateAlfredResponse(conversation)
+        } catch (error) {
+          // handle any errors thrown during message waiting
+          throw new Error(`Tried to receive response from user, but I got this error: ${error}`)
+        }
       }
 
       // Create github ticket using alfred's response
@@ -81,18 +109,20 @@ export default {
         await octokit,
         OWNER,
         REPO,
-        alfredResponseObject.title,
-        alfredResponseObject.body,
-        alfredResponseObject.labels,
+        alfredResponse.title,
+        alfredResponse.body,
+        alfredResponse.labels,
       )
 
       await interaction.followUp({
         ephemeral: true,
-        content: `Title: ${alfredResponseObject?.title}
-        Issue: ${alfredResponseObject?.body} 
-        Labels: ${alfredResponseObject?.labels}
-        Feedback: ${alfredResponseObject?.response_to_user} 
-        Github ticket logged here: ${url}`,
+        content: `
+          Title: ${alfredResponse?.title}
+          Issue: ${alfredResponse?.body} 
+          Labels: ${alfredResponse?.labels}
+          Feedback: ${alfredResponse?.response_to_user} 
+          Github ticket logged here: ${url}
+        `,
       })
     }
   },

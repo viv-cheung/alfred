@@ -1,5 +1,5 @@
 export default {
-  model: 'gpt-3.5-turbo',
-  temperature: 0.7,
+  model: 'gpt-4',
+  temperature: 0.5,
   max_tokens: 1000,
 }
