@@ -14,6 +14,9 @@ import PreConversationPrompt from '../prompts/PreConversationPrompt'
 // The messages will be from the most recent messages (e.i last 25 messages)
 const N_LAST_MESSAGES_TO_READ = 4
 const COUNT_RESPONSE_LIMIT = 4
+const USER_WORD_INPUT_LIMIT = 1500
+const TIMEOUT_WAITING_FOR_RESPONSE_LIMIT = 30000
+const USER_RESPONSE_COUNT_LIMIT = 1
 
 // TEMPORARY SETTINGS
 const OWNER = 'viviankc'
@@ -28,6 +31,13 @@ const octokit = getOctokit(AlfredGithubConfig)
 async function generateAlfredResponse(conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
+  }
+
+  if (conversation.split(' ').length > USER_WORD_INPUT_LIMIT) {
+    throw new Error(`
+      Not able to review the conversation because it exceeds the 
+      word limit of ${USER_WORD_INPUT_LIMIT} (${conversation.split(' ').length} words)
+    `)
   }
 
   try {
@@ -49,7 +59,6 @@ async function generateAlfredResponse(conversation: string) {
     }
     throw new Error("Alfred's response is not in a JSON format")
   } catch (error) {
-    console.error(`Error reaching openAI: ${error}`)
     throw new Error(`Error reaching openAI: ${error}`)
   }
 }
@@ -79,8 +88,8 @@ export default {
       // based on the generateAlfredResponse prompt
       let alfredResponse = await generateAlfredResponse(conversation)
 
-      // If additional information is required from the user, Alfred
-      // will ask some questions to the user before creating the ticket
+      // If additional information is required from the user, Alfred will ask
+      // some questions to the user before creating the ticket.
       while (alfredResponse.response_to_user !== 'I have all the information needed!' && responseCount < COUNT_RESPONSE_LIMIT) {
         responseCount += 1
 
@@ -89,19 +98,18 @@ export default {
         // define message filter function
         const filter = (msg: any) => msg.author.id === interaction.user.id
 
-        try {
-          const responseMessage = await channel.awaitMessages({
-            filter, max: 1, time: 40000, errors: ['time'],
-          })
+        const responseMessage = await channel.awaitMessages({
+          filter, max: USER_RESPONSE_COUNT_LIMIT, time: TIMEOUT_WAITING_FOR_RESPONSE_LIMIT, errors: ['time'],
+        })
 
-          const userResponse = responseMessage?.first()?.content || ''
-          conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
-
-          alfredResponse = await generateAlfredResponse(conversation)
-        } catch (error) {
-          // handle any errors thrown during message waiting
-          throw new Error(`Tried to receive response from user, but I got this error: ${error}`)
+        if (responseMessage.size === 0) {
+          throw new Error('The waiting period for the response has timed out.')
         }
+
+        const userResponse = responseMessage?.first()?.content || ''
+        conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
+
+        alfredResponse = await generateAlfredResponse(conversation)
       }
 
       // Create github ticket using alfred's response
