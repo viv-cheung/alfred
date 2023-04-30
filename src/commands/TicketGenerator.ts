@@ -1,5 +1,5 @@
 import {
-  CommandInteraction, Client, Message, SlashCommandBuilder,
+  Client, Message, SlashCommandBuilder, ChatInputCommandInteraction,
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY, AlfredGithubConfig } from '../config/config'
@@ -8,11 +8,10 @@ import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
 import LabelsPrompt from '../prompts/LabelsPrompt'
 import PreConversationPrompt from '../prompts/PreConversationPrompt'
+import { getMessageFromURL, mentionUser } from '../utils/discord'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
-// The messages will be from the most recent messages (e.i last 25 messages)
-const N_LAST_MESSAGES_TO_READ = 4
 const COUNT_RESPONSE_LIMIT = 4
 const USER_WORD_INPUT_LIMIT = 1500
 const TIMEOUT_WAITING_FOR_RESPONSE_LIMIT = 30000
@@ -22,9 +21,7 @@ const USER_RESPONSE_COUNT_LIMIT = 1
 const OWNER = 'viviankc'
 const REPO = 'gtc'
 
-const configuration = new Configuration({
-  apiKey: GPT_API_KEY,
-})
+const configuration = new Configuration({ apiKey: GPT_API_KEY })
 const openai = new OpenAIApi(configuration)
 const octokit = getOctokit(AlfredGithubConfig)
 
@@ -64,42 +61,50 @@ async function generateAlfredResponse(conversation: string) {
 }
 
 const generateTicketCommandData = new SlashCommandBuilder()
-  .setName('generate-ticket-summary')
-  .setDescription('Generate a GitHub Ticket')
+  .setName('create-issue-ai')
+  .setDescription('Alfred will read conversation and create a ticket')
+  .addStringOption((option) => option
+    .setName('first_message')
+    .setDescription('URL of the first message Alfred should start from')
+    .setRequired(true))
 
 // Command to generate a GitHub Ticket
 export default {
   data: generateTicketCommandData,
-  execute: async (client: Client, interaction: CommandInteraction) => {
-    let responseCount: number = 0
+  execute: async (client: Client, interaction: ChatInputCommandInteraction) => {
+    const responseCount: number = 0
+
+    // Get the first message to start from (the Original Post)
+    const op = await getMessageFromURL(client, interaction.options.getString('first_message'))
 
     // Find the channel where the conversation took place
     const channel = await client.channels.cache.get(interaction.channelId)
 
     if (channel && channel.isTextBased()) {
-      // Fetch the messages in the channel and concatenate them into a single string
-      const messages = await channel.messages.fetch({ limit: N_LAST_MESSAGES_TO_READ })
-      let conversation = ''
+      // Start the conversation with the OP
+      let conversation = `${op.author.username} : ${op.content} \n`
+
+      // Fetch the messages in the channel after OP and concatenate them
+      const messages = await channel.messages.fetch({ after: op.id })
       messages.reverse().forEach((message: Message<true> | Message<false>) => {
-        conversation += `${message.author.username} : ${message.content} \n `
+        conversation += `${message.author.username} : ${message.content} \n`
       })
 
-      // Pass the messages from Discord to ChatGPT to create a response
-      // based on the generateAlfredResponse prompt
+      // Pass the messages from Discord to GPT model to create a response
       let alfredResponse = await generateAlfredResponse(conversation)
 
       // If additional information is required from the user, Alfred will ask
-      // some questions to the user before creating the ticket.
+      // some questions to the user before creating the ticket, up to a point.
       while (alfredResponse.response_to_user !== 'I have all the information needed!' && responseCount < COUNT_RESPONSE_LIMIT) {
-        responseCount += 1
+        await channel.send(`${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`)
 
-        await channel.send(alfredResponse.response_to_user)
-
-        // define message filter function
-        const filter = (msg: any) => msg.author.id === interaction.user.id
-
+        // Listen for user response
+        console.log('Waiting for message!')
         const responseMessage = await channel.awaitMessages({
-          filter, max: USER_RESPONSE_COUNT_LIMIT, time: TIMEOUT_WAITING_FOR_RESPONSE_LIMIT, errors: ['time'],
+          filter: (m: any) => m.author.id === interaction.user.id && m.channel.id === channel.id,
+          max: USER_RESPONSE_COUNT_LIMIT,
+          time: TIMEOUT_WAITING_FOR_RESPONSE_LIMIT,
+          errors: ['time'],
         })
 
         if (responseMessage.size === 0) {

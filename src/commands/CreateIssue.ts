@@ -8,7 +8,7 @@ const OWNER = 'viviankc'
 const REPO = 'gtc'
 
 const createIssueCommandData = new SlashCommandBuilder()
-  .setName('createissue')
+  .setName('create-issue-manual')
   .setDescription('Create a GitHub issue')
   .addStringOption((option) => option
     .setName('title')
