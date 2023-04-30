@@ -8,7 +8,7 @@ import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
 import LabelsPrompt from '../prompts/LabelsPrompt'
 import PreConversationPrompt from '../prompts/PreConversationPrompt'
-import { getMessageFromURL, mentionUser } from '../utils/discord'
+import { getMessageFromURL, mentionUser, replyOrFollowup } from '../utils/discord'
 import { AlfredResponse } from '../types/AlfredResponse'
 
 /*  ******SETTINGS****** */
@@ -38,26 +38,23 @@ async function generateAlfredResponse(conversation: string) {
     `)
   }
 
-  try {
-    const labels = await getRepositoryLabels(await octokit, OWNER, REPO)
-    const completion = await openai.createChatCompletion({
-      messages: [
-        { role: 'system', content: `${TicketCreatorPrompt}` },
-        { role: 'system', content: `${LabelsPrompt}` },
-        { role: 'system', content: `${labels}` },
-        { role: 'system', content: `${PreConversationPrompt}` },
-        { role: 'user', content: `${conversation}` },
-      ],
-      ...openAISettings,
-    } as any)
-    const alfredResponse = completion.data.choices[0].message?.content.toString()
+  const labels = await getRepositoryLabels(await octokit, OWNER, REPO)
+  const completion = await openai.createChatCompletion({
+    messages: [
+      { role: 'system', content: `${TicketCreatorPrompt}` },
+      { role: 'system', content: `${LabelsPrompt}` },
+      { role: 'system', content: `${labels}` },
+      { role: 'system', content: `${PreConversationPrompt}` },
+      { role: 'user', content: `${conversation}` },
+    ],
+    ...openAISettings,
+  } as any)
+  const alfredResponse = completion.data.choices[0].message?.content.toString()
 
-    if (alfredResponse && JSON.parse(alfredResponse) !== undefined) {
-      return JSON.parse(alfredResponse) as AlfredResponse
-    }
-    throw new Error("Alfred's response is not in a JSON format")
-  } catch (error) {
-    throw new Error(`Error reaching openAI: ${error}`)
+  if (alfredResponse) {
+    return JSON.parse(alfredResponse) as AlfredResponse
+  } else {
+    throw new Error ('GPT response is unfortunately empty. Troubled servers perhaps?')
   }
 }
 
@@ -73,7 +70,7 @@ const generateTicketCommandData = new SlashCommandBuilder()
 export default {
   data: generateTicketCommandData,
   execute: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    const responseCount: number = 0
+    let responseCount: number = 0
 
     // Get the first message to start from (the Original Post)
     const op = await getMessageFromURL(client, interaction.options.getString('first_message'))
@@ -97,7 +94,14 @@ export default {
       // If additional information is required from the user, Alfred will ask
       // some questions to the user before creating the ticket, up to a point.
       while (alfredResponse.response_to_user !== 'I have all the information needed!' && responseCount < COUNT_RESPONSE_LIMIT) {
-        await channel.send(`${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`)
+        await replyOrFollowup(
+          interaction,
+          responseCount > 1,
+          { 
+            ephemeral: true,
+            content:`${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`
+          }
+        )
 
         // Listen for user response
         const responseMessage = await channel.awaitMessages({
@@ -110,10 +114,12 @@ export default {
           throw new Error('The waiting period for the response has timed out.')
         }
 
+        // Append new response from user to conversation sent to GPT
         const userResponse = responseMessage?.first()?.content || ''
         conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
 
         alfredResponse = await generateAlfredResponse(conversation)
+        responseCount += 1
       }
 
       // Create github ticket using alfred's response
@@ -126,14 +132,18 @@ export default {
         alfredResponse.labels,
       )
 
-      await interaction.followUp({
-        ephemeral: true,
-        content:
-          `**${alfredResponse.title}**\n`
-          + `:link: ${url}\n`
-          + `:label: ${alfredResponse.labels}\n`
-          + `\`\`\`${alfredResponse.body}\`\`\``,
-      })
+      await replyOrFollowup(
+        interaction,
+        responseCount > 1,
+        { 
+          ephemeral: true,
+          content:
+            `**${alfredResponse.title}**\n`
+            + `:link: ${url}\n`
+            + `:label: ${alfredResponse.labels}\n`
+            + `\`\`\`${alfredResponse.body}\`\`\``,
+        }
+      )
     }
   },
 }

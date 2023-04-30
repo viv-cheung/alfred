@@ -1,4 +1,4 @@
-import { Client } from 'discord.js'
+import { ChatInputCommandInteraction, Client, InteractionReplyOptions } from 'discord.js'
 
 export async function getMessageFromURL(client: Client, url: string | null) {
   if (!url) throw new Error("Message URL can't be undefined")
@@ -37,4 +37,12 @@ export async function getMessageFromURL(client: Client, url: string | null) {
 
 export function mentionUser(userID: string) {
   return `<@${userID}>`
+}
+
+export async function replyOrFollowup(
+  interaction: ChatInputCommandInteraction,
+  isReply: boolean, 
+  reply: InteractionReplyOptions
+) {
+  (isReply ? interaction.reply : interaction.followUp).bind(interaction)(reply)
 }
