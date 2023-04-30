@@ -41,8 +41,8 @@ export function mentionUser(userID: string) {
 
 export async function replyOrFollowup(
   interaction: ChatInputCommandInteraction,
-  isReply: boolean, 
-  reply: InteractionReplyOptions
+  isReply: boolean,
+  reply: InteractionReplyOptions,
 ) {
   (isReply ? interaction.reply : interaction.followUp).bind(interaction)(reply)
 }

@@ -53,9 +53,8 @@ async function generateAlfredResponse(conversation: string) {
 
   if (alfredResponse) {
     return JSON.parse(alfredResponse) as AlfredResponse
-  } else {
-    throw new Error ('GPT response is unfortunately empty. Troubled servers perhaps?')
   }
+  throw new Error('GPT response is unfortunately empty. Troubled servers perhaps?')
 }
 
 const generateTicketCommandData = new SlashCommandBuilder()
@@ -97,10 +96,10 @@ export default {
         await replyOrFollowup(
           interaction,
           responseCount > 1,
-          { 
+          {
             ephemeral: true,
-            content:`${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`
-          }
+            content: `${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`,
+          },
         )
 
         // Listen for user response
@@ -135,14 +134,14 @@ export default {
       await replyOrFollowup(
         interaction,
         responseCount > 1,
-        { 
+        {
           ephemeral: true,
           content:
             `**${alfredResponse.title}**\n`
             + `:link: ${url}\n`
             + `:label: ${alfredResponse.labels}\n`
             + `\`\`\`${alfredResponse.body}\`\`\``,
-        }
+        },
       )
     }
   },
