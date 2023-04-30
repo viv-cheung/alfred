@@ -9,6 +9,7 @@ import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
 import LabelsPrompt from '../prompts/LabelsPrompt'
 import PreConversationPrompt from '../prompts/PreConversationPrompt'
 import { getMessageFromURL, mentionUser } from '../utils/discord'
+import { AlfredResponse } from '../types/AlfredResponse'
 
 /*  ******SETTINGS****** */
 // Number of messages to send to ChatGPT for context
@@ -52,7 +53,7 @@ async function generateAlfredResponse(conversation: string) {
     const alfredResponse = completion.data.choices[0].message?.content.toString()
 
     if (alfredResponse && JSON.parse(alfredResponse) !== undefined) {
-      return JSON.parse(alfredResponse)
+      return JSON.parse(alfredResponse) as AlfredResponse
     }
     throw new Error("Alfred's response is not in a JSON format")
   } catch (error) {
@@ -99,12 +100,10 @@ export default {
         await channel.send(`${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`)
 
         // Listen for user response
-        console.log('Waiting for message!')
         const responseMessage = await channel.awaitMessages({
           filter: (m: any) => m.author.id === interaction.user.id && m.channel.id === channel.id,
           max: USER_RESPONSE_COUNT_LIMIT,
           time: TIMEOUT_WAITING_FOR_RESPONSE_LIMIT,
-          errors: ['time'],
         })
 
         if (responseMessage.size === 0) {
@@ -129,13 +128,11 @@ export default {
 
       await interaction.followUp({
         ephemeral: true,
-        content: `
-          Title: ${alfredResponse?.title}
-          Issue: ${alfredResponse?.body} 
-          Labels: ${alfredResponse?.labels}
-          Feedback: ${alfredResponse?.response_to_user} 
-          Github ticket logged here: ${url}
-        `,
+        content:
+          `**${alfredResponse.title}**\n`
+          + `:link: ${url}\n`
+          + `:label: ${alfredResponse.labels}\n`
+          + `\`\`\`${alfredResponse.body}\`\`\``,
       })
     }
   },

@@ -4,13 +4,14 @@ export async function getMessageFromURL(client: Client, url: string | null) {
   if (!url) throw new Error("Message URL can't be undefined")
 
   // Regex for discord messages
+  // e.g. https://discord.com/channels/1095842976/10969358/11023650
   const regex = /https:\/\/discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)/
   const matches = url.match(regex)
 
   // If we have a match, get message, else throw
   if (!matches) {
     throw new Error(
-      'Invalid message URL. Expected **discord/guild_id/channel_id/message_id**',
+      'Invalid message URL. Expected discord/guild_id/channel_id/message_id',
     )
   }
 

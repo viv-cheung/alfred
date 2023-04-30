@@ -12,7 +12,9 @@ export default async function safeExecute(
     console.error(`Error while executing command ${command.data.name}:`, error)
 
     await interaction.followUp({
-      content: `:pensive: *I am terribly sorry, but it seems I've run into some trouble:* **${error}**`,
+      content:
+       ':pensive: *I am terribly sorry, but it seems I\'ve run into some trouble:*\n'
+       + `:red_circle: **${error}**`,
       ephemeral: true,
     })
   }
