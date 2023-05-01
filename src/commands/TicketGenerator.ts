@@ -1,43 +1,45 @@
 import {
-  Client, Message, SlashCommandBuilder, ChatInputCommandInteraction,
+  Client, Message, SlashCommandBuilder, ChatInputCommandInteraction, ThreadChannel,
 } from 'discord.js'
 import { Configuration, OpenAIApi } from 'openai'
 import { GPT_API_KEY, AlfredGithubConfig } from '../config/config'
-import TicketCreatorPrompt from '../prompts/TicketCreatorPrompt'
 import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
 import LabelsPrompt from '../prompts/LabelsPrompt'
 import PreConversationPrompt from '../prompts/PreConversationPrompt'
 import {
-  getMessageFromURL, mentionUser, replaceMessageUrls, replyOrFollowup,
+  getMessageFromURL, mentionUser, replaceMessageUrls, replyOrFollowup, waitForUserResponse,
 } from '../utils/discord'
 import { AlfredResponse } from '../types/AlfredResponse'
+import AlfredRolePrompt from '../prompts/AlfredRolePrompt'
+import TicketRulesPrompt from '../prompts/TicketRulesPrompt'
 
 /*  ******SETTINGS****** */
-// Number of messages to send to ChatGPT for context
-const COUNT_RESPONSE_LIMIT = 4
-const USER_WORD_INPUT_LIMIT = 1500
-const TIMEOUT_WAITING_FOR_RESPONSE_LIMIT = 30000
-const USER_RESPONSE_COUNT_LIMIT = 1
+const COUNT_QUESTION_LIMIT = 4 // Number of questions Alfred can ask
+const CONVERSATION_WORD_LIMIT = 1500 // Maximum number of words in conversation
+const TIMEOUT_WAITING_FOR_RESPONSE_LIMIT = 60000 // Time user has to reply to a question
+const USER_RESPONSE_COUNT_LIMIT = 1 // How many answers does Alfred wait for
 
 // TEMPORARY SETTINGS
 const OWNER = 'viviankc'
 const REPO = 'gtc'
 
+// Setup
 const configuration = new Configuration({ apiKey: GPT_API_KEY })
 const openai = new OpenAIApi(configuration)
 const octokit = getOctokit(AlfredGithubConfig)
 
+// Core function
 async function generateAlfredResponse(discordClient: Client, conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
   }
 
   // Check if conversation is too long for GPT to handle in one call
-  if (conversation.split(' ').length > USER_WORD_INPUT_LIMIT) {
+  if (conversation.split(' ').length > CONVERSATION_WORD_LIMIT) {
     throw new Error(`
       Not able to review the conversation because it exceeds the 
-      word limit of ${USER_WORD_INPUT_LIMIT} (${conversation.split(' ').length} words)
+      word limit of ${CONVERSATION_WORD_LIMIT} (${conversation.split(' ').length} words)
     `)
   }
 
@@ -50,11 +52,12 @@ async function generateAlfredResponse(discordClient: Client, conversation: strin
   // Send all to chat GPT
   const completion = await openai.createChatCompletion({
     messages: [
-      { role: 'system', content: `${TicketCreatorPrompt}` },
-      { role: 'system', content: `${LabelsPrompt}` },
-      { role: 'system', content: `${labels}` },
-      { role: 'system', content: `${PreConversationPrompt}` },
-      { role: 'user', content: `${noURLconversation}` },
+      { role: 'system', content: AlfredRolePrompt },
+      { role: 'system', content: PreConversationPrompt },
+      { role: 'user', content: noURLconversation },
+      { role: 'system', content: TicketRulesPrompt },
+      { role: 'system', content: LabelsPrompt },
+      { role: 'system', content: labels },
     ],
     ...openAISettings,
   } as any)
@@ -66,6 +69,7 @@ async function generateAlfredResponse(discordClient: Client, conversation: strin
   throw new Error('GPT response is unfortunately empty. Troubled servers perhaps?')
 }
 
+// Build command
 const generateTicketCommandData = new SlashCommandBuilder()
   .setName('create-issue-ai')
   .setDescription('Alfred will read conversation and create a ticket')
@@ -78,7 +82,8 @@ const generateTicketCommandData = new SlashCommandBuilder()
 export default {
   data: generateTicketCommandData,
   execute: async (discordClient: Client, interaction: ChatInputCommandInteraction) => {
-    let responseCount: number = 0
+    let questionCount: number = 0 // Number of questions alfred asks
+    let responseThread: ThreadChannel | undefined
 
     // Get the first message to start from (the Original Post)
     const op = await getMessageFromURL(discordClient, interaction.options.getString('first_message'))
@@ -88,35 +93,40 @@ export default {
 
     if (channel && channel.isTextBased()) {
       // Start the conversation with the OP
-      let conversation = `${op.author.username} : ${op.content} \n`
+      const opAttachments = op.attachments.map((att) => att.url)
+      let conversation = `${op.author.username} : ${op.content} ${opAttachments.length > 0 ? `[ATTACHMENTS: ${opAttachments}]` : ''}]\n`
 
       // Fetch the messages in the channel after OP and concatenate them
       const messages = await channel.messages.fetch({ after: op.id })
       messages.reverse().forEach((message: Message<true> | Message<false>) => {
-        conversation += `${message.author.username} : ${message.content} \n`
+        conversation += `${message.author.username} : ${message.content} ${opAttachments.length > 0 ? `[ATTACHMENTS: ${opAttachments}]` : ''}]\n\n`
       })
 
       // Pass the messages from Discord to GPT model to create a response
       let alfredResponse = await generateAlfredResponse(discordClient, conversation)
 
-      // If additional information is required from the user, Alfred will ask
-      // some questions to the user before creating the ticket, up to a point.
-      while (alfredResponse.response_to_user !== 'I have all the information needed!' && responseCount < COUNT_RESPONSE_LIMIT) {
+      // If additional information is required from the user, Alfred will ask some questions to
+      // the user before creating the ticket, up to a point. To not pollute main channels,
+      // Alfred will create a thread to inquire further information.
+      while (alfredResponse.response_to_user !== 'I have all the information needed!' && questionCount < COUNT_QUESTION_LIMIT) {
         await replyOrFollowup(
           interaction,
-          responseCount > 1,
+          questionCount > 1,
           {
             ephemeral: true,
             content: `${mentionUser(interaction.user.id)} ${alfredResponse.response_to_user}`,
           },
+          responseThread,
         )
 
-        // Listen for user response
-        const responseMessage = await channel.awaitMessages({
-          filter: (m: any) => m.author.id === interaction.user.id && m.channel.id === channel.id,
-          max: USER_RESPONSE_COUNT_LIMIT,
-          time: TIMEOUT_WAITING_FOR_RESPONSE_LIMIT,
-        })
+        // Listen for user response in channel or thread
+        const responseMessage = await waitForUserResponse(
+          interaction.user.id,
+          USER_RESPONSE_COUNT_LIMIT,
+          TIMEOUT_WAITING_FOR_RESPONSE_LIMIT,
+          channel,
+          responseThread,
+        )
 
         if (responseMessage.size === 0) {
           throw new Error('The waiting period for the response has timed out.')
@@ -124,10 +134,19 @@ export default {
 
         // Append new response from user to conversation sent to GPT
         const userResponse = responseMessage?.first()?.content || ''
-        conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
-
+        conversation += `Alfred (you): ${alfredResponse.response_to_user}\n`
+        conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse}\n`
         alfredResponse = await generateAlfredResponse(discordClient, conversation)
-        responseCount += 1
+
+        // Will make a thread for remaining interactions
+        if (!responseThread) {
+          responseThread = await responseMessage.last()?.startThread({
+            name: 'Alfred inquiries',
+            autoArchiveDuration: 60, // in minutes
+          })
+        }
+
+        questionCount += 1
       }
 
       // Create github ticket using alfred's response
@@ -142,7 +161,7 @@ export default {
 
       await replyOrFollowup(
         interaction,
-        responseCount > 1,
+        questionCount > 1,
         {
           ephemeral: true,
           content:
@@ -151,6 +170,7 @@ export default {
             + `:label: ${alfredResponse.labels}\n`
             + `\`\`\`${alfredResponse.body}\`\`\``,
         },
+        responseThread,
       )
     }
   },

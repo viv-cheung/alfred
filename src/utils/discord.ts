@@ -1,4 +1,12 @@
-import { ChatInputCommandInteraction, Client, InteractionReplyOptions } from 'discord.js'
+import {
+  ChatInputCommandInteraction,
+  Client,
+  Collection,
+  InteractionReplyOptions,
+  Message,
+  TextBasedChannel,
+  ThreadChannel,
+} from 'discord.js'
 
 // Regex for discord messages
 // e.g. https://discord.com/channels/1095842976/10969358/11023650
@@ -59,6 +67,35 @@ export async function replyOrFollowup(
   interaction: ChatInputCommandInteraction,
   isReply: boolean,
   reply: InteractionReplyOptions,
+  thread?: ThreadChannel,
 ) {
-  (isReply ? interaction.reply : interaction.followUp).bind(interaction)(reply)
+  // If in a thread, always just send message
+  if (thread) {
+    thread.send(reply.content!)
+  } else {
+    (isReply ? interaction.deferReply : interaction.followUp).bind(interaction)(reply)
+  }
+}
+
+export async function waitForUserResponse(
+  userID: string, // User ID
+  max: number, // Maximum number of responses
+  time: number, // How long Alfred waits for
+  channel: TextBasedChannel,
+  thread?: ThreadChannel,
+): Promise<Collection<string, Message>> {
+  const filter = (m: any) => m.author.id === userID
+
+  // Custom timeout promise to be used when the thread is not defined, so it doesn't blow up
+  const timeoutPromise = new Promise<Collection<string, Message>>(
+    // eslint-disable-next-line no-promise-executor-return
+    (resolve) => setTimeout(() => resolve(new Collection()), time + 1000),
+  )
+
+  // Listeners
+  const threadPromise = thread ? thread.awaitMessages({ filter, max, time }) : timeoutPromise
+  const channelPromise = channel.awaitMessages({ filter, max, time })
+
+  // Listen to both channel and thread in parallel and return the first reply in either
+  return Promise.race([channelPromise, threadPromise])
 }
