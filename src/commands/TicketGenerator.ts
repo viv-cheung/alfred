@@ -8,7 +8,9 @@ import openAISettings from '../config/openAISettings'
 import { getOctokit, createIssue, getRepositoryLabels } from '../utils/github'
 import LabelsPrompt from '../prompts/LabelsPrompt'
 import PreConversationPrompt from '../prompts/PreConversationPrompt'
-import { getMessageFromURL, mentionUser, replyOrFollowup } from '../utils/discord'
+import {
+  getMessageFromURL, mentionUser, replaceMessageUrls, replyOrFollowup,
+} from '../utils/discord'
 import { AlfredResponse } from '../types/AlfredResponse'
 
 /*  ******SETTINGS****** */
@@ -26,11 +28,12 @@ const configuration = new Configuration({ apiKey: GPT_API_KEY })
 const openai = new OpenAIApi(configuration)
 const octokit = getOctokit(AlfredGithubConfig)
 
-async function generateAlfredResponse(conversation: string) {
+async function generateAlfredResponse(discordClient: Client, conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
   }
 
+  // Check if conversation is too long for GPT to handle in one call
   if (conversation.split(' ').length > USER_WORD_INPUT_LIMIT) {
     throw new Error(`
       Not able to review the conversation because it exceeds the 
@@ -38,14 +41,20 @@ async function generateAlfredResponse(conversation: string) {
     `)
   }
 
+  // Replace discord message urls with their actual message content
+  const noURLconversation = await replaceMessageUrls(discordClient, conversation)
+
+  // Get Repository labels + definitions for auto-labeling
   const labels = await getRepositoryLabels(await octokit, OWNER, REPO)
+
+  // Send all to chat GPT
   const completion = await openai.createChatCompletion({
     messages: [
       { role: 'system', content: `${TicketCreatorPrompt}` },
       { role: 'system', content: `${LabelsPrompt}` },
       { role: 'system', content: `${labels}` },
       { role: 'system', content: `${PreConversationPrompt}` },
-      { role: 'user', content: `${conversation}` },
+      { role: 'user', content: `${noURLconversation}` },
     ],
     ...openAISettings,
   } as any)
@@ -68,14 +77,14 @@ const generateTicketCommandData = new SlashCommandBuilder()
 // Command to generate a GitHub Ticket
 export default {
   data: generateTicketCommandData,
-  execute: async (client: Client, interaction: ChatInputCommandInteraction) => {
+  execute: async (discordClient: Client, interaction: ChatInputCommandInteraction) => {
     let responseCount: number = 0
 
     // Get the first message to start from (the Original Post)
-    const op = await getMessageFromURL(client, interaction.options.getString('first_message'))
+    const op = await getMessageFromURL(discordClient, interaction.options.getString('first_message'))
 
     // Find the channel where the conversation took place
-    const channel = await client.channels.cache.get(interaction.channelId)
+    const channel = await discordClient.channels.cache.get(interaction.channelId)
 
     if (channel && channel.isTextBased()) {
       // Start the conversation with the OP
@@ -88,7 +97,7 @@ export default {
       })
 
       // Pass the messages from Discord to GPT model to create a response
-      let alfredResponse = await generateAlfredResponse(conversation)
+      let alfredResponse = await generateAlfredResponse(discordClient, conversation)
 
       // If additional information is required from the user, Alfred will ask
       // some questions to the user before creating the ticket, up to a point.
@@ -117,7 +126,7 @@ export default {
         const userResponse = responseMessage?.first()?.content || ''
         conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse} `
 
-        alfredResponse = await generateAlfredResponse(conversation)
+        alfredResponse = await generateAlfredResponse(discordClient, conversation)
         responseCount += 1
       }
 
