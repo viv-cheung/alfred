@@ -7,10 +7,12 @@ console.log('Initiating bot ...')
 
 // Create client
 const client = new Client({
-  intents: [GatewayIntentBits.DirectMessages,
+  intents: [
+    GatewayIntentBits.DirectMessages,
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent],
+    GatewayIntentBits.MessageContent,
+  ],
 })
 
 // Ready the client
