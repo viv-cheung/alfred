@@ -13,6 +13,7 @@ import {
 import { AlfredResponse } from '../types/AlfredResponse'
 import AlfredRolePrompt from '../prompts/AlfredRolePrompt'
 import TicketRulesPrompt from '../prompts/TicketRulesPrompt'
+import { addConversation } from '../utils/openai'
 
 /*  ******SETTINGS****** */
 const COUNT_QUESTION_LIMIT = 4 // Number of questions Alfred can ask
@@ -93,13 +94,12 @@ export default {
 
     if (channel && channel.isTextBased()) {
       // Start the conversation with the OP
-      const opAttachments = op.attachments.map((att) => att.url)
-      let conversation = `${op.author.username} : ${op.content} ${opAttachments.length > 0 ? `[ATTACHMENTS: ${opAttachments}]` : ''}]\n`
+      let conversation = addConversation(op)
 
       // Fetch the messages in the channel after OP and concatenate them
       const messages = await channel.messages.fetch({ after: op.id })
       messages.reverse().forEach((message: Message<true> | Message<false>) => {
-        conversation += `${message.author.username} : ${message.content} ${opAttachments.length > 0 ? `[ATTACHMENTS: ${opAttachments}]` : ''}]\n\n`
+        conversation += addConversation(message)
       })
 
       // Pass the messages from Discord to GPT model to create a response
@@ -128,14 +128,13 @@ export default {
           responseThread,
         )
 
-        if (responseMessage.size === 0) {
+        if (!responseMessage || responseMessage.size === 0) {
           throw new Error('The waiting period for the response has timed out.')
         }
 
         // Append new response from user to conversation sent to GPT
-        const userResponse = responseMessage?.first()?.content || ''
         conversation += `Alfred (you): ${alfredResponse.response_to_user}\n`
-        conversation += `${responseMessage?.first()?.author.username || 'User response'}: ${userResponse}\n`
+        conversation += addConversation(responseMessage?.first()!)
         alfredResponse = await generateAlfredResponse(discordClient, conversation)
 
         // Will make a thread for remaining interactions
