@@ -8,8 +8,8 @@ import openAISettings from '../config/openAISettings'
 import { AlfredResponse } from '../types/AlfredResponse'
 
 // TEMPORARY SETTINGS
-const OWNER = 'viviankc'
-const REPO = 'gtc'
+const OWNER = 'viv-cheung'
+const REPO = 'alfred'
 
 // Setup
 const configuration = new Configuration({ apiKey: GPT_API_KEY })
