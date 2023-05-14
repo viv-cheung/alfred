@@ -16,14 +16,12 @@ const openai = new OpenAIApi(config)
 const summarizeCommandData = new SlashCommandBuilder()
   .setName('summarize-ai')
   .setDescription('Summarize the key points from a conversation starting with a message URL')
-  .addStringOption((option) =>
-    option
-      .setName('start_message')
-      .setDescription('URL of the message to start summarizing from')
-      .setRequired(true)
-  )
+  .addStringOption((option) => option
+    .setName('start_message')
+    .setDescription('URL of the message to start summarizing from')
+    .setRequired(true))
 
-// Will summarize conversations 
+// Will summarize conversations
 async function generateConversationSummary(discordClient: Client, conversation: string) {
   if (conversation.trim().length === 0) {
     throw new Error('Please enter valid information or conversation')
@@ -82,7 +80,7 @@ export default {
       // Send the summary back to the user
       await interaction.followUp({
         content: `Here's the summary of the conversation:\n\n${summary}`,
-        ephemeral: true
+        ephemeral: true,
 
       })
     }
