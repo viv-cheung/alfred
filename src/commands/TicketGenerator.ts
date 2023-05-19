@@ -22,12 +22,12 @@ const TIMEOUT_WAITING_FOR_RESPONSE_LIMIT = 60000 // Time user has to reply to a 
 const USER_RESPONSE_COUNT_LIMIT = 1 // How many answers does Alfred wait for
 
 // TEMPORARY SETTINGS
-const OWNER = 'viviankc'
-const REPO = 'gtc'
+const OWNER = 'viv-cheung'
+const REPO = 'alfred'
 
 // Setup
-const configuration = new Configuration({ apiKey: GPT_API_KEY })
-const openai = new OpenAIApi(configuration)
+const config = new Configuration({ apiKey: GPT_API_KEY })
+const openai = new OpenAIApi(config)
 const octokit = getOctokit(AlfredGithubConfig)
 
 // Core function
