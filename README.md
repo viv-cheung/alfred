@@ -28,6 +28,26 @@ To have your very own Alfred Discord bot, please follow these steps:
 4. Add your Discord bot token and chat GPT API key into your `config.ts` file.
 5. Run `yarn start` or `npm start` to activate the bot.
 
+# How to setup?
+To setup your github and discord bot properly, follow these steps:
+
+1. Create a github app (e.g. https://github.com/apps/ai-alfred)
+2. Copy the Github app ID and Github App Client ID (e.g. https://github.com/settings/apps/ai-alfred) and put it in your .env
+3. Create a new github app client secret for your github app (e.g. in https://github.com/settings/apps/ai-alfred) and copy it in your .env file
+4. Create a new private key for your github app (e.g. in https://github.com/settings/apps/ai-alfred at the bottom) and copy it in your .env file
+5. Install the github app on the repository you want the issues to be created
+6. Copy the github app installion ID (you can find it [here](https://github.com/settings/installations)) and put it in your .env
+7. Create a discord bot and add it to your server ; 
+7.1 Go to https://discord.com/developers/applications
+7.2 Click `New application` (top right)
+7.3 Name and create your bot 
+7.4 Go to `Bot` section and under `Privileged Gateway Intents`, turn on `PRESENCE INTENT`, `SERVER MEMBERS INTENT` and `MESSAGE CONTENT INTENT` 
+7.5 Go to `OAuth2/URL Generator`
+7.6 Under `scopes`, select `bot`
+7.7 Under `BOT PERMISSIONS` select everything under the `TEXT PERMISSIONS`
+7.8 Copy and paste URL at the bottom in your browser search bar and add bot to your server
+8. In `CreateIssue.ts` and `TicketGenerator.ts`, modify the github repository username and repo name.
+
 # 📋 Automatically Assign Issues to a GitHub Project
 If you desire Alfred to automatically assign issues to a specific GitHub Project, kindly create an [Auto Add Workflow](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically#configuring-the-auto-add-workflow-in-your-project) in your project:
 
