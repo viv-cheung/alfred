@@ -25,6 +25,7 @@ To have your very own Alfred Discord bot, please follow these steps:
 1. Git clone this repository.
 2. Run `yarn` or `npm install` to install dependencies.
 3. Duplicate the config sample file `src/config/config.sample.ts` and rename the copy to `src/config/config.ts`.
+
 4. Add your Discord bot token and chat GPT API key into your `config.ts` file.
 5. Run `yarn start` or `npm start` to activate the bot.
 
@@ -36,3 +37,6 @@ If you desire Alfred to automatically assign issues to a specific GitHub Project
 3. Click Edit, located at the top right.
 4. Select `is:issue is:open` if you wish for every created issue to be automatically added to your project.
 5. Click **Save and turn on workflow**.
+
+# Example
+![Capture](https://github.com/viv-cheung/alfred/assets/9306422/26d53659-c98e-4893-9d52-1e321927288f)
